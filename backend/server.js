@@ -7,6 +7,7 @@ const superagent = require('superagent'); // or axios.
 require('dotenv').config();
 const mongoose = require('mongoose');
 
+
 const PORT = process.env.REACT_APP_PORT || 3099;
 
 server.use(cors());
@@ -15,9 +16,9 @@ server.use(express.json());
 // Get Data From API.
 class psiPower {
     constructor(val) {
-        this.description = description;
-        this.name = name;
-        this.img = img;
+        this.description = val.description;
+        this.name = val.name;
+        this.img = val.img;
     }
 }
 class allCharacters {
@@ -27,7 +28,7 @@ class allCharacters {
         this.img = val.img;
         const allPower = val.psiPowers.map(data => new psiPower(data));
         this.psiPowers = allPower;
-        this.id = val["id"];
+        this.id = val._id;
     }
 }
 const getAllData = (req, res) => {
@@ -35,19 +36,22 @@ const getAllData = (req, res) => {
     superagent.get(url).then(data => {
         const allCard = data.body.map(data => new allCharacters(data));
         res.send(allCard);
-    })
-        .catch(error => res.send(error));
+    }).catch(error => res.send(error));
 }
 
 // EndPoint:
-server.get('/API', getAllData);
+server.get('/get-characters', getAllData);
 
 // Mongo DB:
+mongoose.connect('mongodb://localhost:27017/characters', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+});
 const Characters = new mongoose.Schema({
     gender: String,
     name: String,
     img: String,
-    allPowers: [{ description: String, name: String, img: String }],
+    psiPowers: [{ description: String, name: String, img: String }],
     id: [{ type: String, unique: true }]
 })
 const CharactersModelMongoose = mongoose.model('characters', Characters);
@@ -55,8 +59,10 @@ const CharactersModelMongoose = mongoose.model('characters', Characters);
 // Add:
 const addFav = (req, res) => {
     const { gender, name, img, psiPowers, id } = req.body;
-    CharactersModelMongoose.find({ id: id }, (error, charcter) => {
-        if (character.length > 0)
+    console.log('Body data' , req.body.psiPowers);
+    CharactersModelMongoose.find({ id:id }, (error, charcter) => {
+        console.log(charcter);
+        if (charcter.length > 0)
             res.send('the character is already in the favorite list ');
         else {
             const newFavChar = new CharactersModelMongoose({
@@ -64,7 +70,7 @@ const addFav = (req, res) => {
                 gender: gender,
                 psiPowers: psiPowers,
                 img: img,
-                id: id
+                id: id,
             })
             newFavChar.save();
             res.send(newFavChar);
